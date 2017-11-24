@@ -38,5 +38,52 @@ contract('SharedAccount', (accounts) => {
         const expectedWithdraw = prevBalance.toNumber() - currBalance.toNumber();
 
         assert.equal(expectedWithdraw, 4, 'Withdraw is not match');
-    })
+    });
+    it('should not open an account if exists', async () => {
+        try {
+            await instance.openAccount({from: accounts[1]});
+        } catch(error) {
+            assert.equal(error instanceof Error, true);
+        }
+    });
+    it('should not display balance if account not exists', async () => {
+        try {
+            await instance.displayBalance({from: accounts[9]});
+        } catch(error) {
+            assert.equal(error instanceof Error, true);
+        }
+    });
+    it('should not deposit money if account not exists', async () => {
+        try {
+            await instance.depositMoney({from: accounts[9], value:1});
+        } catch(error) {
+            assert.equal(error instanceof Error, true);
+        }
+    });
+    it('should not withdraw money if account not exists', async () => {
+        try {
+            await instance.withdrawMoney(1, {from: accounts[9]});
+        } catch(error) {
+            assert.equal(error instanceof Error, true);
+        }
+    });
+    it('should change owner', async () => {
+        await instance.changeOwner(accounts[1], {from: accounts[0]});
+        try {
+            await instance.takeAllMoney({from: accounts[0]})
+        } catch(error) {
+            assert.equal(error instanceof Error, true);
+        }
+    });
+    it('should delete an account by owner', async () => {
+        const numAccounts = await instance.numberOfAccounts();
+        const accountBalance = await instance.displayBalance({from: accounts[2]});
+        const prevBalance =  await instance.displayBalance({from: accounts[1]});
+        await instance.deleteAccount(accounts[2], {from: accounts[1]});
+        const expectedBalance =  await instance.displayBalance({from: accounts[1]})
+        
+        const addedShare = accountBalance.toNumber() / (numAccounts.toNumber() - 1);
+
+        assert.equal(prevBalance.toNumber() + addedShare , expectedBalance.toNumber(), 'Deleted account\'s balance not distributed');
+    });
 })
